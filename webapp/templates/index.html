@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APK Sentinel — Android APK Security Testing Platform</title>
+<style>
+  :root{--bg:#0b1220;--panel:#111a2e;--ink:#e9eef7;--muted:#9aa7bd;--line:#22304d;--accent:#3b82f6;--accent2:#22c1a6}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#16233f,transparent),var(--bg);
+       color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;min-height:100vh}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 20px 60px}
+  header{text-align:center;margin-bottom:28px}
+  .logo{font-size:40px}
+  h1{font-size:32px;margin:10px 0 6px;letter-spacing:-.5px}
+  .tag{color:var(--muted);max-width:620px;margin:0 auto;font-size:17px}
+  form{margin:30px auto 0;max-width:640px}
+  .drop{border:2px dashed #33456b;border-radius:18px;background:linear-gradient(180deg,#0f1a30,#0c1526);
+        padding:44px 24px;text-align:center;transition:.15s;cursor:pointer}
+  .drop.drag{border-color:var(--accent);background:#12213f}
+  .drop .big{font-size:19px;font-weight:600}
+  .drop .hint{color:var(--muted);font-size:14px;margin-top:6px}
+  .drop .file{margin-top:14px;color:var(--accent2);font-weight:600;min-height:22px;word-break:break-all}
+  input[type=file]{display:none}
+  .btn{margin-top:18px;display:inline-flex;gap:8px;align-items:center;background:linear-gradient(90deg,var(--accent),#2563eb);
+       color:#fff;border:0;border-radius:12px;padding:14px 26px;font-size:16px;font-weight:600;cursor:pointer;width:100%;justify-content:center}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.go{background:linear-gradient(90deg,var(--accent2),#0ea5a0)}
+  .note{color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:44px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .card p{margin:0;color:var(--muted);font-size:13.5px}
+  .card .ic{font-size:22px}
+  .recent{margin-top:44px}
+  .recent h2{font-size:16px;color:var(--muted);font-weight:600;margin-bottom:12px}
+  .rrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--panel);
+        border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;text-decoration:none;color:var(--ink)}
+  .rrow:hover{border-color:var(--accent)}
+  .rrow .pkg{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all}
+  .rrow .meta{color:var(--muted);font-size:12px}
+  .badge{font-weight:800;border-radius:10px;padding:6px 12px;min-width:44px;text-align:center;color:#fff}
+  .spin{display:none;margin-top:14px;color:var(--muted);font-size:14px}
+  .spin.on{display:block}
+  footer{color:var(--muted);text-align:center;margin-top:48px;font-size:12px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🛡️</div>
+    <h1>APK Sentinel</h1>
+    <p class="tag">Upload an Android <b>.apk</b> and get a complete security &amp; quality report —
+       with a step-by-step guide on exactly how to fix every issue found.</p>
+  </header>
+
+  <form id="form" action="/analyze" method="post" enctype="multipart/form-data">
+    <label class="drop" id="drop">
+      <div class="big">Drag &amp; drop your APK here</div>
+      <div class="hint">or click to browse · max {{ max_mb }} MB</div>
+      <div class="file" id="fileName"></div>
+      <input type="file" name="apk" id="apk" accept=".apk,application/vnd.android.package-archive">
+    </label>
+    <button type="submit" class="btn" id="submit" disabled>Analyze APK</button>
+    <div class="spin" id="spin">⏳ Analyzing… decoding the manifest, scanning bytecode and checking signatures. This can take a moment for large APKs.</div>
+    <div class="note">Files are analyzed locally on the server and the APK is deleted right after the report is generated.</div>
+  </form>
+
+  <div class="grid">
+    <div class="card"><div class="ic">📜</div><h3>Manifest audit</h3><p>Decodes the binary AndroidManifest: permissions, exported components, debuggable/backup flags, SDK levels.</p></div>
+    <div class="card"><div class="ic">🔑</div><h3>Secret scanning</h3><p>Hunts DEX bytecode for hard-coded API keys, tokens, private keys and cleartext HTTP endpoints.</p></div>
+    <div class="card"><div class="ic">✍️</div><h3>Signature check</h3><p>Detects v1/v2/v3 signing schemes, weak certificate algorithms and debug-key signing.</p></div>
+    <div class="card"><div class="ic">🧭</div><h3>Fix guide</h3><p>Every finding comes with severity, evidence, and copy-pasteable remediation steps and code.</p></div>
+  </div>
+
+  {% if recent %}
+  <div class="recent">
+    <h2>Recent scans</h2>
+    {% for r in recent %}
+    <a class="rrow" href="/report/{{ r.id }}">
+      <span>
+        <span class="pkg">{{ r.package or r.file_name }}</span><br>
+        <span class="meta">{{ r.severity_counts.critical }} crit · {{ r.severity_counts.high }} high · {{ r.severity_counts.medium }} med · {{ r.created[:16].replace('T',' ') }}</span>
+      </span>
+      <span class="badge" style="background:{{ {'A+':'#1a7f4b','A':'#1a7f4b','B':'#2f7d9a','C':'#c08a00','D':'#d64518','F':'#b3123b'}.get(r.grade,'#5b6472') }}">{{ r.grade }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <footer>
+    APK Sentinel v{{ version }} · Static analysis engine · Not a substitute for a full manual security assessment.
+  </footer>
+</div>
+
+<script>
+  const drop = document.getElementById('drop');
+  const input = document.getElementById('apk');
+  const fileName = document.getElementById('fileName');
+  const submit = document.getElementById('submit');
+  const form = document.getElementById('form');
+  const spin = document.getElementById('spin');
+
+  function setFile(f){
+    if(!f){ return; }
+    if(!f.name.toLowerCase().endsWith('.apk')){
+      fileName.textContent = '⚠️ Please choose a .apk file';
+      submit.disabled = true; return;
+    }
+    fileName.textContent = f.name + '  (' + (f.size/1048576).toFixed(1) + ' MB)';
+    submit.disabled = false;
+    submit.classList.add('go');
+  }
+  input.addEventListener('change', e => setFile(e.target.files[0]));
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => {e.preventDefault(); drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => {e.preventDefault(); drop.classList.remove('drag');}));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f){ input.files = e.dataTransfer.files; setFile(f);} });
+  form.addEventListener('submit', () => { submit.disabled = true; submit.textContent='Analyzing…'; spin.classList.add('on'); });
+</script>
+</body>
+</html>

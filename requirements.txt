@@ -1,0 +1,5 @@
+# APK Sentinel dependencies.
+#
+# The analysis engine (apk_sentinel/) uses only the Python standard library.
+# Flask is required ONLY for the optional web UI (webapp/).
+Flask>=3.0,<4.0

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# APK Sentinel output
+reports/
+*.report.html
+*.report.md
+*.report.json
+
+# Generated sample / test artifacts
+sample*.apk
+sample-vulnerable.apk
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
